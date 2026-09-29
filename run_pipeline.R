@@ -85,7 +85,10 @@ write.csv(
 message(">> Generando visualizaciones...")
 plot_volcano(results_df, out_path = file.path(args$outdir, "plots", "volcano.png"))
 
-vst_data <- DESeq2::vst(dds, blind = TRUE)
+# Igual que en qc_filtering.R: con pocos genes, vst() falla porque no
+# alcanza el mínimo de submuestreo (nsub). Usamos la transformación
+# completa, que funciona para cualquier tamaño de dataset.
+vst_data <- DESeq2::varianceStabilizingTransformation(dds, blind = TRUE)
 plot_top_variable_heatmap(
   SummarizedExperiment::assay(vst_data), data$metadata, args$condition_col,
   out_path = file.path(args$outdir, "plots", "heatmap_top_genes.png")
