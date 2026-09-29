@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.3'
+
+      - name: Instalar dependencias
+        run: |
+          install.packages(c("tidyverse", "pheatmap", "ggrepel", "testthat", "BiocManager"))
+          BiocManager::install("DESeq2", update = FALSE, ask = FALSE)
+        shell: Rscript {0}
+
+      - name: Correr tests unitarios
+        run: Rscript tests/run_tests.R
+
+      - name: Ejecutar pipeline con datos de ejemplo
+        run: |
+          Rscript run_pipeline.R \
+            --counts data/counts_raw.csv \
+            --metadata data/sample_metadata.csv \
+            --condition_col condition \
+            --reference_level control \
+            --outdir results_ci
+
+      - name: Subir resultados como artefacto
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-results
+          path: results_ci/
